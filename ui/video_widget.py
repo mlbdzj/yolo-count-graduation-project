@@ -48,6 +48,9 @@ class VideoWidget(QWidget):
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.StrongFocus)
 
+        # Theme
+        self.theme: str = "default"
+
         # Current frame
         self._frame: np.ndarray | None = None
         self._pixmap: QPixmap | None = None
@@ -75,7 +78,7 @@ class VideoWidget(QWidget):
         self._dragging_vertex: tuple[str, int] | None = None
         self._drag_offset: QPointF = QPointF(0, 0)
 
-    # ── public API ──────────────────────────────────────────────────────
+    # public API
 
     def set_frame(self, frame: np.ndarray):
         """Set the current video frame (BGR numpy array)."""
@@ -153,7 +156,7 @@ class VideoWidget(QWidget):
         self.config_changed.emit()
         self.update()
 
-    # ── coordinate transforms ───────────────────────────────────────────
+    # coordinate transforms
 
     def _compute_transform(self):
         """Compute scale and offset to fit video frame in widget."""
@@ -180,18 +183,25 @@ class VideoWidget(QWidget):
         y = (wpt.y() - self._offset_y) / self._scale
         return QPointF(x, y)
 
-    # ── paint ───────────────────────────────────────────────────────────
+    # paint
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
         # Background
-        painter.fillRect(self.rect(), QColor(30, 30, 30))
+        if self.theme == "pixel":
+            painter.fillRect(self.rect(), QColor(13, 13, 13))
+        else:
+            painter.fillRect(self.rect(), QColor(30, 30, 30))
 
         if self._frame is None:
-            painter.setPen(QColor(200, 200, 200))
-            painter.setFont(QFont("", 16))
+            if self.theme == "pixel":
+                painter.setPen(QColor(0, 255, 65))
+                painter.setFont(QFont("", 14))
+            else:
+                painter.setPen(QColor(200, 200, 200))
+                painter.setFont(QFont("", 16))
             painter.drawText(self.rect(), Qt.AlignCenter, "拖入视频文件或点击 文件→打开视频")
             return
 
@@ -392,7 +402,7 @@ class VideoWidget(QWidget):
             painter.setBrush(QBrush(QColor(255, 255, 0, 100)))
             painter.drawEllipse(mouse_w, 5, 5)
 
-    # ── mouse events ────────────────────────────────────────────────────
+    # mouse events
 
     def _find_vertex_at(self, wpt: QPointF, threshold: float = 8.0) -> tuple[str, int] | None:
         """Find a vertex near the given widget coordinate. Returns (group, index) or None."""
@@ -528,7 +538,7 @@ class VideoWidget(QWidget):
                     self.config_changed.emit()
             return
 
-    # ── vertex helpers ──────────────────────────────────────────────────
+    # vertex helpers
 
     def _get_vertex_point(self, key: tuple[str, int]) -> QPointF:
         group, idx = key

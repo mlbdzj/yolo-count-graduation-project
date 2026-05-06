@@ -15,31 +15,57 @@ from ui.chart_widget import ChartWidget
 class KPICard(QFrame):
     """Single KPI metric card with label and value."""
 
+    PIXEL_COLORS = {
+        "#2196F3": "#00ccff",
+        "#4CAF50": "#00ff41",
+        "#FF9800": "#ff8800",
+        "#9C27B0": "#cc44ff",
+    }
+
     def __init__(self, title: str, color: str, parent=None):
         super().__init__(parent)
         self.setObjectName("kpiCard")
         self.setFrameShape(QFrame.StyledPanel)
-        self.setStyleSheet(f"""
-            KPICard {{
-                background: white;
-                border-radius: 8px;
-                border-left: 4px solid {color};
-                padding: 8px;
-            }}
-        """)
+        self._color = color
+        self._pixel_color = self.PIXEL_COLORS.get(color, "#00ff41")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(2)
 
         self.title_label = QLabel(title)
-        self.title_label.setStyleSheet("color: #666; font-size: 12px;")
         layout.addWidget(self.title_label)
 
         self.value_label = QLabel("--")
         self.value_label.setFont(QFont("", 24, QFont.Bold))
-        self.value_label.setStyleSheet(f"color: {color};")
         layout.addWidget(self.value_label)
+
+        self.apply_theme("default")
+
+    def apply_theme(self, theme: str):
+        if theme == "pixel":
+            self.setStyleSheet(f"""
+                KPICard {{
+                    background: #111122;
+                    border: 3px solid {self._pixel_color};
+                    padding: 8px;
+                }}
+            """)
+            self.title_label.setStyleSheet("color: #00ff41; font-size: 12px;")
+            self.value_label.setFont(QFont("", 22, QFont.Bold))
+            self.value_label.setStyleSheet(f"color: {self._pixel_color};")
+        else:
+            self.setStyleSheet(f"""
+                KPICard {{
+                    background: white;
+                    border-radius: 8px;
+                    border-left: 4px solid {self._color};
+                    padding: 8px;
+                }}
+            """)
+            self.title_label.setStyleSheet("color: #666; font-size: 12px;")
+            self.value_label.setFont(QFont("", 24, QFont.Bold))
+            self.value_label.setStyleSheet(f"color: {self._color};")
 
 
 class KPIPanel(QWidget):
@@ -55,9 +81,9 @@ class KPIPanel(QWidget):
         layout.setSpacing(10)
 
         # Title
-        title = QLabel("📊 实时 KPI")
-        title.setFont(QFont("", 14, QFont.Bold))
-        layout.addWidget(title)
+        self.panel_title = QLabel("实时 KPI")
+        self.panel_title.setFont(QFont("", 14, QFont.Bold))
+        layout.addWidget(self.panel_title)
 
         # KPI Cards in 2x2 grid
         card_grid = QGridLayout()
@@ -108,3 +134,17 @@ class KPIPanel(QWidget):
 
     def set_time(self, text: str):
         self.time_label.setText(text)
+
+    def apply_theme(self, theme: str):
+        for card in [self.total_card, self.working_card, self.idle_card, self.packages_card]:
+            card.apply_theme(theme)
+        if theme == "pixel":
+            self.setStyleSheet("background: #0d0d0d;")
+            self.panel_title.setStyleSheet("color: #00ff41; font-size: 14px; font-weight: bold;")
+            self.status_label.setStyleSheet("color: #00ff41; font-size: 11px;")
+            self.time_label.setStyleSheet("color: #00ff41; font-size: 11px;")
+        else:
+            self.setStyleSheet("")
+            self.panel_title.setStyleSheet("")
+            self.status_label.setStyleSheet("color: #999; font-size: 11px;")
+            self.time_label.setStyleSheet("color: #999; font-size: 11px;")

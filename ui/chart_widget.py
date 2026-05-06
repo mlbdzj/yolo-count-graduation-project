@@ -9,25 +9,39 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 class ChartWidget(QWidget):
     """Real-time trend chart showing KPI over 5-minute windows."""
 
+    # Light theme curve colors
+    LIGHT_COLORS = {
+        "packages": (33, 150, 243),
+        "working": (76, 175, 80),
+        "idle": (255, 152, 0),
+    }
+    # Pixel theme curve colors
+    PIXEL_COLORS = {
+        "packages": (0, 204, 255),
+        "working": (0, 255, 65),
+        "idle": (255, 136, 0),
+    }
+
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._current_theme = "default"
 
         self.graph = pg.PlotWidget(title="KPI 趋势")
         self.graph.setBackground("w")
         self.graph.showGrid(x=True, y=True, alpha=0.3)
         self.graph.addLegend()
 
-        # Curves
+        c = self.LIGHT_COLORS
         self.packages_curve = self.graph.plot(
-            [], [], pen=pg.mkPen(color=(33, 150, 243), width=2),
+            [], [], pen=pg.mkPen(color=c["packages"], width=2),
             name="包裹/5min"
         )
         self.working_curve = self.graph.plot(
-            [], [], pen=pg.mkPen(color=(76, 175, 80), width=2),
+            [], [], pen=pg.mkPen(color=c["working"], width=2),
             name="工作中人数(均值)"
         )
         self.idle_curve = self.graph.plot(
-            [], [], pen=pg.mkPen(color=(255, 152, 0), width=2),
+            [], [], pen=pg.mkPen(color=c["idle"], width=2),
             name="空闲人数(均值)"
         )
 
@@ -42,6 +56,43 @@ class ChartWidget(QWidget):
         self._packages_data: list[int] = []
         self._working_data: list[float] = []
         self._idle_data: list[float] = []
+
+    def apply_theme(self, theme: str):
+        self._current_theme = theme
+        if theme == "pixel":
+            c = self.PIXEL_COLORS
+            self.graph.setBackground("#111122")
+            self.graph.showGrid(x=True, y=True, alpha=0.15)
+
+            self.packages_curve.setPen(pg.mkPen(color=c["packages"], width=3))
+            self.working_curve.setPen(pg.mkPen(color=c["working"], width=3))
+            self.idle_curve.setPen(pg.mkPen(color=c["idle"], width=3))
+
+            axis_pen = pg.mkPen(color="#00ff41", width=2)
+            self.graph.getAxis("left").setPen(axis_pen)
+            self.graph.getAxis("bottom").setPen(axis_pen)
+            self.graph.getAxis("left").setTextPen(axis_pen)
+            self.graph.getAxis("bottom").setTextPen(axis_pen)
+            self.graph.setLabel("left", "数量", **{"color": "#00ff41", "font-size": "12px"})
+            self.graph.setLabel("bottom", "时间窗口", **{"color": "#00ff41", "font-size": "12px"})
+            self.graph.setTitle(None)
+        else:
+            c = self.LIGHT_COLORS
+            self.graph.setBackground("w")
+            self.graph.showGrid(x=True, y=True, alpha=0.3)
+
+            self.packages_curve.setPen(pg.mkPen(color=c["packages"], width=2))
+            self.working_curve.setPen(pg.mkPen(color=c["working"], width=2))
+            self.idle_curve.setPen(pg.mkPen(color=c["idle"], width=2))
+
+            light_pen = pg.mkPen(color="#000000", width=1)
+            self.graph.getAxis("left").setPen(light_pen)
+            self.graph.getAxis("bottom").setPen(light_pen)
+            self.graph.getAxis("left").setTextPen(light_pen)
+            self.graph.getAxis("bottom").setTextPen(light_pen)
+            self.graph.setLabel("left", "数量")
+            self.graph.setLabel("bottom", "时间窗口")
+            self.graph.setTitle("KPI 趋势")
 
     def update_from_history(self, history: list[dict]):
         """Update chart from window history."""

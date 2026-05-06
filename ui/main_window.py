@@ -5,6 +5,7 @@ import yaml
 from PySide6.QtCore import QTimer, Qt, QUrl
 from PySide6.QtGui import QAction, QDesktopServices, QKeySequence
 from PySide6.QtWidgets import (
+    QApplication,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -24,6 +25,7 @@ from engine.pipeline import VideoPipeline
 from engine.tracker import Tracker
 from engine.zones import ZoneManager
 from ui.kpi_panel import KPIPanel
+from ui.theme_manager import ThemeManager
 from ui.video_widget import EditMode, VideoWidget
 
 
@@ -53,7 +55,7 @@ class MainWindow(QMainWindow):
         self._load_config()
         self._load_default_video()
 
-    # ── engine init ────────────────────────────────────────────────────
+    # engine init
 
     def _init_engine(self):
         """Initialize detector, tracker, zone manager, and KPI aggregator."""
@@ -67,7 +69,7 @@ class MainWindow(QMainWindow):
         self.zone_manager = ZoneManager()
         self.kpi_aggregator = KPIAggregator(window_seconds=300)
 
-    # ── UI construction ────────────────────────────────────────────────
+    # UI construction
 
     def _build_ui(self):
         # Central widget
@@ -111,25 +113,25 @@ class MainWindow(QMainWindow):
         # Video controls
         tb.addWidget(QLabel(" 视频 "))
 
-        self.action_open = QAction("📂 打开视频", self)
+        self.action_open = QAction("打开视频", self)
         self.action_open.setShortcut(QKeySequence.Open)
         self.action_open.triggered.connect(self._open_video)
         tb.addAction(self.action_open)
 
         tb.addSeparator()
 
-        self.action_play = QAction("▶ 运行", self)
+        self.action_play = QAction("运行", self)
         self.action_play.setShortcut(QKeySequence("Ctrl+R"))
         self.action_play.triggered.connect(self._run_pipeline)
         tb.addAction(self.action_play)
 
-        self.action_pause = QAction("⏸ 暂停", self)
+        self.action_pause = QAction("暂停", self)
         self.action_pause.setShortcut(QKeySequence("Ctrl+P"))
         self.action_pause.triggered.connect(self._pause_pipeline)
         self.action_pause.setEnabled(False)
         tb.addAction(self.action_pause)
 
-        self.action_stop = QAction("⏹ 停止", self)
+        self.action_stop = QAction("停止", self)
         self.action_stop.setShortcut(QKeySequence("Ctrl+S"))
         self.action_stop.triggered.connect(self._stop_pipeline)
         self.action_stop.setEnabled(False)
@@ -140,21 +142,21 @@ class MainWindow(QMainWindow):
         # ROI editing
         tb.addWidget(QLabel(" ROI "))
 
-        self.action_edit_work = QAction("🟢 编辑工作区", self)
+        self.action_edit_work = QAction("编辑工作区", self)
         self.action_edit_work.setCheckable(True)
         self.action_edit_work.triggered.connect(lambda checked: self._toggle_roi_mode(
             EditMode.DRAW_WORK_ZONE if checked else EditMode.VIEW
         ))
         tb.addAction(self.action_edit_work)
 
-        self.action_edit_idle = QAction("🟠 编辑空闲区", self)
+        self.action_edit_idle = QAction("编辑空闲区", self)
         self.action_edit_idle.setCheckable(True)
         self.action_edit_idle.triggered.connect(lambda checked: self._toggle_roi_mode(
             EditMode.DRAW_IDLE_ZONE if checked else EditMode.VIEW
         ))
         tb.addAction(self.action_edit_idle)
 
-        self.action_edit_line = QAction("🔵 编辑计数线", self)
+        self.action_edit_line = QAction("编辑计数线", self)
         self.action_edit_line.setCheckable(True)
         self.action_edit_line.triggered.connect(lambda checked: self._toggle_roi_mode(
             EditMode.DRAW_COUNT_LINE if checked else EditMode.VIEW
@@ -163,25 +165,33 @@ class MainWindow(QMainWindow):
 
         tb.addSeparator()
 
-        self.action_clear_roi = QAction("🗑 清除当前ROI", self)
+        self.action_clear_roi = QAction("清除ROI", self)
         self.action_clear_roi.triggered.connect(self._clear_current_roi)
         tb.addAction(self.action_clear_roi)
 
-        self.action_save_config = QAction("💾 保存配置", self)
+        self.action_save_config = QAction("保存配置", self)
         self.action_save_config.setShortcut(QKeySequence.Save)
         self.action_save_config.triggered.connect(self._save_config)
         tb.addAction(self.action_save_config)
 
         tb.addSeparator()
 
-        self.action_toggle_roi = QAction("👁 显示ROI", self)
+        self.action_toggle_roi = QAction("显示ROI", self)
         self.action_toggle_roi.setCheckable(True)
         self.action_toggle_roi.setChecked(True)
         self.action_toggle_roi.setShortcut(QKeySequence("Ctrl+H"))
         self.action_toggle_roi.triggered.connect(self._toggle_roi_visibility)
         tb.addAction(self.action_toggle_roi)
 
-    # ── ROI mode toggle ────────────────────────────────────────────────
+        tb.addSeparator()
+
+        self.action_toggle_theme = QAction("切换主题", self)
+        self.action_toggle_theme.setCheckable(True)
+        self.action_toggle_theme.setShortcut(QKeySequence("Ctrl+T"))
+        self.action_toggle_theme.triggered.connect(self._toggle_theme)
+        tb.addAction(self.action_toggle_theme)
+
+    # ROI mode toggle
 
     def _toggle_roi_mode(self, mode: EditMode):
         """Ensure only one ROI editing mode is active at a time."""
@@ -193,17 +203,29 @@ class MainWindow(QMainWindow):
         self.action_edit_line.setChecked(mode == EditMode.DRAW_COUNT_LINE)
 
         if mode == EditMode.DRAW_WORK_ZONE:
-            self.status_bar.showMessage("🟢 工作区绘制: 左键添加顶点 · 右键/Enter完成 · Esc取消", 0)
+            self.status_bar.showMessage("工作区绘制: 左键添加顶点 · 右键/Enter完成 · Esc取消", 0)
         elif mode == EditMode.DRAW_IDLE_ZONE:
-            self.status_bar.showMessage("🟠 空闲区绘制: 左键添加顶点 · 右键/Enter完成 · Esc取消", 0)
+            self.status_bar.showMessage("空闲区绘制: 左键添加顶点 · 右键/Enter完成 · Esc取消", 0)
         elif mode == EditMode.DRAW_COUNT_LINE:
-            self.status_bar.showMessage("🔵 计数线绘制: 左键点击起点 → 左键点击终点 · Esc取消", 0)
+            self.status_bar.showMessage("计数线绘制: 左键点击起点 → 左键点击终点 · Esc取消", 0)
         else:
             self.status_bar.showMessage("就绪", 3000)
 
     def _toggle_roi_visibility(self, checked: bool):
         self.video_widget.show_roi = checked
-        self.action_toggle_roi.setText("👁 显示ROI" if checked else "👁 隐藏ROI")
+        self.action_toggle_roi.setText("隐藏ROI" if checked else "显示ROI")
+        self.video_widget.update()
+
+    def _toggle_theme(self, checked: bool):
+        app = QApplication.instance()
+        if checked:
+            ThemeManager.apply_theme(app, ThemeManager.PIXEL)
+        else:
+            ThemeManager.apply_theme(app, ThemeManager.DEFAULT)
+        self.action_toggle_theme.setText("切换主题")
+        self.kpi_panel.apply_theme(ThemeManager.current())
+        self.kpi_panel.chart.apply_theme(ThemeManager.current())
+        self.video_widget.theme = ThemeManager.current()
         self.video_widget.update()
 
     def _clear_current_roi(self):
@@ -217,7 +239,7 @@ class MainWindow(QMainWindow):
         else:
             self.status_bar.showMessage("请先选择一个 ROI 编辑模式", 3000)
 
-    # ── config ─────────────────────────────────────────────────────────
+    # config
 
     def _load_config(self):
         if not os.path.exists(self.config_path):
@@ -238,7 +260,7 @@ class MainWindow(QMainWindow):
                 yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
             # Sync engine
             self.zone_manager = ZoneManager.from_config({"zones": config["zones"]})
-            self.status_bar.showMessage("配置已保存 ✓", 3000)
+            self.status_bar.showMessage("配置已保存", 3000)
         except Exception as e:
             QMessageBox.critical(self, "保存失败", str(e))
 
@@ -246,7 +268,7 @@ class MainWindow(QMainWindow):
         """Called whenever ROI vertices change (draw, drag, delete)."""
         self.status_bar.showMessage("ROI 已修改 (Ctrl+S 保存)", 3000)
 
-    # ── video ──────────────────────────────────────────────────────────
+    # video
 
     def _load_default_video(self):
         default = Path(__file__).parent.parent / "test.mp4"
@@ -277,13 +299,13 @@ class MainWindow(QMainWindow):
             self.kpi_panel.set_status(f"已加载: {os.path.basename(path)}")
             self.setWindowTitle(f"KPI 监控系统 — {os.path.basename(path)}")
             self.status_bar.showMessage(
-                f"已加载 {os.path.basename(path)} | 请先配置 ROI 区域，然后点击 ▶ 运行",
+                f"已加载 {os.path.basename(path)} | 请先配置 ROI 区域，然后点击 运行",
                 5000,
             )
         else:
             QMessageBox.warning(self, "读取失败", "无法从视频中读取帧。")
 
-    # ── pipeline ───────────────────────────────────────────────────────
+    # pipeline
 
     def _run_pipeline(self):
         """Start or restart the video processing pipeline."""
@@ -340,7 +362,7 @@ class MainWindow(QMainWindow):
         self.action_stop.setEnabled(True)
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
-        self.kpi_panel.set_status("▶ 运行中...")
+        self.kpi_panel.set_status("运行中...")
 
         # Reset ROI edit mode
         self._toggle_roi_mode(EditMode.VIEW)
@@ -357,13 +379,13 @@ class MainWindow(QMainWindow):
         if self.pipeline and self.pipeline.isRunning():
             if self.pipeline.is_paused:
                 self.pipeline.resume()
-                self.action_pause.setText("⏸ 暂停")
-                self.kpi_panel.set_status("▶ 运行中...")
+                self.action_pause.setText("暂停")
+                self.kpi_panel.set_status("运行中...")
                 self.status_bar.showMessage("已恢复", 3000)
             else:
                 self.pipeline.pause()
-                self.action_pause.setText("▶ 继续")
-                self.kpi_panel.set_status("⏸ 已暂停")
+                self.action_pause.setText("继续")
+                self.kpi_panel.set_status("已暂停")
                 self.status_bar.showMessage("已暂停", 3000)
 
     def _stop_pipeline(self):
@@ -376,7 +398,7 @@ class MainWindow(QMainWindow):
 
     def _on_finished(self):
         self._reset_ui_state()
-        self.kpi_panel.set_status("✓ 视频处理完成")
+        self.kpi_panel.set_status("视频处理完成")
         self.status_bar.showMessage("视频处理完成", 5000)
 
     def _on_error(self, msg: str):
@@ -403,11 +425,11 @@ class MainWindow(QMainWindow):
 
         self.action_play.setEnabled(True)
         self.action_pause.setEnabled(False)
-        self.action_pause.setText("⏸ 暂停")
+        self.action_pause.setText("暂停")
         self.action_stop.setEnabled(False)
         self.progress_bar.setVisible(False)
 
-    # ── close ──────────────────────────────────────────────────────────
+    # close
 
     def closeEvent(self, event):
         if self.pipeline and self.pipeline.isRunning():
