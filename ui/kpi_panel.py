@@ -1,9 +1,12 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QFileDialog,
     QFrame,
     QGridLayout,
+    QHBoxLayout,
     QLabel,
+    QPushButton,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -37,7 +40,7 @@ class KPICard(QFrame):
         layout.addWidget(self.title_label)
 
         self.value_label = QLabel("--")
-        self.value_label.setFont(QFont("", 24, QFont.Bold))
+        self.value_label.setFont(QFont("Segoe UI", 24, QFont.Bold))
         layout.addWidget(self.value_label)
 
         self.apply_theme("default")
@@ -52,7 +55,7 @@ class KPICard(QFrame):
                 }}
             """)
             self.title_label.setStyleSheet("color: #00ff41; font-size: 12px;")
-            self.value_label.setFont(QFont("", 22, QFont.Bold))
+            self.value_label.setFont(QFont("Segoe UI", 22, QFont.Bold))
             self.value_label.setStyleSheet(f"color: {self._pixel_color};")
         else:
             self.setStyleSheet(f"""
@@ -64,7 +67,7 @@ class KPICard(QFrame):
                 }}
             """)
             self.title_label.setStyleSheet("color: #666; font-size: 12px;")
-            self.value_label.setFont(QFont("", 24, QFont.Bold))
+            self.value_label.setFont(QFont("Segoe UI", 24, QFont.Bold))
             self.value_label.setStyleSheet(f"color: {self._color};")
 
 
@@ -82,7 +85,7 @@ class KPIPanel(QWidget):
 
         # Title
         self.panel_title = QLabel("实时 KPI")
-        self.panel_title.setFont(QFont("", 14, QFont.Bold))
+        self.panel_title.setFont(QFont("Segoe UI", 14, QFont.Bold))
         layout.addWidget(self.panel_title)
 
         # KPI Cards in 2x2 grid
@@ -92,7 +95,7 @@ class KPIPanel(QWidget):
         self.total_card = KPICard("总人数", "#2196F3")
         self.working_card = KPICard("工作中", "#4CAF50")
         self.idle_card = KPICard("空闲中", "#FF9800")
-        self.packages_card = KPICard("包裹 / 5min", "#9C27B0")
+        self.packages_card = KPICard("包裹 / min", "#9C27B0")
 
         card_grid.addWidget(self.total_card, 0, 0)
         card_grid.addWidget(self.working_card, 0, 1)
@@ -116,6 +119,15 @@ class KPIPanel(QWidget):
         self.chart = ChartWidget()
         layout.addWidget(self.chart, 1)
 
+        # Export button
+        export_layout = QHBoxLayout()
+        export_layout.setContentsMargins(0, 0, 0, 0)
+        self.export_btn = QPushButton("导出图表")
+        self.export_btn.clicked.connect(self._export_chart)
+        export_layout.addStretch()
+        export_layout.addWidget(self.export_btn)
+        layout.addLayout(export_layout)
+
         # Elapsed time
         self.time_label = QLabel("")
         self.time_label.setStyleSheet("color: #999; font-size: 11px;")
@@ -135,6 +147,14 @@ class KPIPanel(QWidget):
     def set_time(self, text: str):
         self.time_label.setText(text)
 
+    def _export_chart(self):
+        path, _ = QFileDialog.getSaveFileName(
+            self, "导出图表", "kpi_chart.png",
+            "PNG 图片 (*.png);;所有文件 (*.*)"
+        )
+        if path:
+            self.chart.export_image(path)
+
     def apply_theme(self, theme: str):
         for card in [self.total_card, self.working_card, self.idle_card, self.packages_card]:
             card.apply_theme(theme)
@@ -143,8 +163,16 @@ class KPIPanel(QWidget):
             self.panel_title.setStyleSheet("color: #00ff41; font-size: 14px; font-weight: bold;")
             self.status_label.setStyleSheet("color: #00ff41; font-size: 11px;")
             self.time_label.setStyleSheet("color: #00ff41; font-size: 11px;")
+            self.export_btn.setStyleSheet("""
+                QPushButton {
+                    background: #1a1a2e; color: #00ff41;
+                    border: 2px solid #00ff41; padding: 6px 16px; font-size: 12px;
+                }
+                QPushButton:hover { background: #00ff41; color: #0d0d0d; }
+            """)
         else:
             self.setStyleSheet("")
             self.panel_title.setStyleSheet("")
             self.status_label.setStyleSheet("color: #999; font-size: 11px;")
             self.time_label.setStyleSheet("color: #999; font-size: 11px;")
+            self.export_btn.setStyleSheet("")

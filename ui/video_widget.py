@@ -198,10 +198,10 @@ class VideoWidget(QWidget):
         if self._frame is None:
             if self.theme == "pixel":
                 painter.setPen(QColor(0, 255, 65))
-                painter.setFont(QFont("", 14))
+                painter.setFont(QFont("Segoe UI",14))
             else:
                 painter.setPen(QColor(200, 200, 200))
-                painter.setFont(QFont("", 16))
+                painter.setFont(QFont("Segoe UI",16))
             painter.drawText(self.rect(), Qt.AlignCenter, "拖入视频文件或点击 文件→打开视频")
             return
 
@@ -268,7 +268,7 @@ class VideoWidget(QWidget):
 
         # Label at first vertex
         painter.setPen(QColor(255, 255, 255))
-        painter.setFont(QFont("", 10, QFont.Bold))
+        painter.setFont(QFont("Segoe UI",10, QFont.Bold))
         painter.drawText(wpts[0] + QPointF(8, -8), label)
 
     def _draw_count_line(self, painter: QPainter):
@@ -308,7 +308,7 @@ class VideoWidget(QWidget):
 
         # Label
         painter.setPen(QColor(255, 255, 255))
-        painter.setFont(QFont("", 10, QFont.Bold))
+        painter.setFont(QFont("Segoe UI",10, QFont.Bold))
         mid = (ws + we) / 2
         painter.drawText(mid + QPointF(8, -8), "Count Line")
 

@@ -1,12 +1,13 @@
 import numpy as np
 import supervision as sv
+from supervision.tracker.byte_tracker.core import ByteTrack
 
 
 class Tracker:
     """ByteTrack wrapper using supervision."""
 
     def __init__(self):
-        self.byte_track = sv.ByteTrack()
+        self.byte_track = ByteTrack()
 
     def update(self, detections: np.ndarray) -> sv.Detections:
         """

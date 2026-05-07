@@ -67,7 +67,7 @@ class MainWindow(QMainWindow):
 
         self.tracker = Tracker()
         self.zone_manager = ZoneManager()
-        self.kpi_aggregator = KPIAggregator(window_seconds=300)
+        self.kpi_aggregator = KPIAggregator(window_seconds=60)
 
     # UI construction
 

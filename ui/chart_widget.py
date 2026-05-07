@@ -34,7 +34,7 @@ class ChartWidget(QWidget):
         c = self.LIGHT_COLORS
         self.packages_curve = self.graph.plot(
             [], [], pen=pg.mkPen(color=c["packages"], width=2),
-            name="包裹/5min"
+            name="包裹/min"
         )
         self.working_curve = self.graph.plot(
             [], [], pen=pg.mkPen(color=c["working"], width=2),
@@ -121,6 +121,12 @@ class ChartWidget(QWidget):
 
         ax = self.graph.getAxis("bottom")
         ax.setTicks([ticks])
+
+    def export_image(self, path: str):
+        """Export the chart as a PNG image."""
+        from pyqtgraph.exporters import ImageExporter
+        exporter = ImageExporter(self.graph.plotItem)
+        exporter.export(path)
 
     def clear(self):
         self._window_times.clear()

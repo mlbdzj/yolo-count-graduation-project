@@ -22,7 +22,7 @@ class KPIAggregator:
     Averages are computed across snapshots within each window.
     """
 
-    def __init__(self, window_seconds: int = 300):
+    def __init__(self, window_seconds: int = 60):
         self.window_seconds = window_seconds
         self._current_window: KPIWindow | None = None
         self._completed_windows: deque[KPIWindow] = deque(maxlen=100)
@@ -81,22 +81,26 @@ class KPIAggregator:
             "packages_unloaded": self.current_packages,
         }
 
+    def _window_to_dict(self, w: KPIWindow, is_current: bool = False) -> dict:
+        avg_working = (sum(w.working_counts) / len(w.working_counts)
+                       if w.working_counts else 0)
+        avg_idle = (sum(w.idle_counts) / len(w.idle_counts)
+                    if w.idle_counts else 0)
+        return {
+            "window_start": w.window_start,
+            "window_end": w.window_end,
+            "avg_working": round(avg_working, 1),
+            "avg_idle": round(avg_idle, 1),
+            "avg_total": round(avg_working + avg_idle, 1),
+            "packages_unloaded": w.total_packages,
+            "is_current": is_current,
+        }
+
     def get_window_history(self) -> list[dict]:
-        """Get completed 5-minute windows as list of dicts for charting."""
-        result = []
-        for w in self._completed_windows:
-            avg_working = (sum(w.working_counts) / len(w.working_counts)
-                           if w.working_counts else 0)
-            avg_idle = (sum(w.idle_counts) / len(w.idle_counts)
-                        if w.idle_counts else 0)
-            result.append({
-                "window_start": w.window_start,
-                "window_end": w.window_end,
-                "avg_working": round(avg_working, 1),
-                "avg_idle": round(avg_idle, 1),
-                "avg_total": round(avg_working + avg_idle, 1),
-                "packages_unloaded": w.total_packages,
-            })
+        """Get completed windows plus current in-progress window for charting."""
+        result = [self._window_to_dict(w) for w in self._completed_windows]
+        if self._current_window is not None:
+            result.append(self._window_to_dict(self._current_window, is_current=True))
         return result
 
     def reset(self):

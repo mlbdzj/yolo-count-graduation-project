@@ -173,7 +173,7 @@ class VideoPipeline(QThread):
         # Draw KPI summary in top-left corner
         lines = [
             f"Working: {working}  Idle: {idle}  Total: {working + idle}",
-            f"Packages/5min: {self.kpi.current_packages}",
+            f"Packages/min: {self.kpi.current_packages}",
         ]
         y0 = 30
         for line in lines:
